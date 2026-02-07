@@ -1,0 +1,17 @@
+{
+  "name": "quintin-trust-bank-backend",
+  "version": "1.0.0",
+  "description": "Backend for Quintin Trust Bank",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "@sendgrid/mail": "^7.7.0"
+  }
+}
