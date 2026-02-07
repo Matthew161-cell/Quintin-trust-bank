@@ -237,6 +237,7 @@ export const TransferPage: React.FC = () => {
             onCancel={() => setShowOTPModal(false)}
             title="Verify Transfer"
             description="Enter the OTP sent to your email to confirm this transfer"
+            skipAutoRequest={true}
           />
         )}
       </AnimatePresence>

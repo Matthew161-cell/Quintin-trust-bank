@@ -8,6 +8,7 @@ interface OTPVerificationProps {
   onCancel?: () => void
   title?: string
   description?: string
+  skipAutoRequest?: boolean // Skip auto-requesting OTP if parent already requested it
 }
 
 export const OTPVerification: React.FC<OTPVerificationProps> = ({
@@ -16,6 +17,7 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
   onCancel,
   title = 'Verify with OTP',
   description = 'Enter the OTP sent to your email',
+  skipAutoRequest = false,
 }) => {
   const [otpCode, setOtpCode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -44,7 +46,8 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
   }
 
   useEffect(() => {
-    // Auto-request OTP when modal opens (only once using ref)
+    // Skip if parent component already requested it (e.g., TransferPage)
+    if (!otpRequestedRef.current && !loading && !skipAutoRequestly once using ref)
     if (!otpRequestedRef.current && !loading) {
       otpRequestedRef.current = true
       handleRequestOTP()
