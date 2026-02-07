@@ -36,10 +36,20 @@ export const AdminUsersPage: React.FC = () => {
   const navigate = useNavigate()
   const [customers, setCustomers] = useState<Customer[]>([])
 
-  // Load users from registry on mount
+  // Load users from registry on mount - always get fresh from localStorage
   useEffect(() => {
-    const registeredUsers = getAllUsers()
-    setCustomers(registeredUsers as any)
+    const stored = localStorage.getItem('users_registry')
+    if (stored) {
+      try {
+        setCustomers(JSON.parse(stored))
+      } catch {
+        const registeredUsers = getAllUsers()
+        setCustomers(registeredUsers as any)
+      }
+    } else {
+      const registeredUsers = getAllUsers()
+      setCustomers(registeredUsers as any)
+    }
   }, [])
 
   const [editModal, setEditModal] = useState<EditModalState>({
@@ -83,24 +93,38 @@ export const AdminUsersPage: React.FC = () => {
     })
   }
 
-  const handleSaveBalance = () => {
+  const handleSaveBalance = async () => {
     if (editModal.customer && editModal.newBalance) {
       const newAmount = parseFloat(editModal.newBalance)
       
       // Update in local state
-      setCustomers(
-        customers.map((c) =>
-          c.id === editModal.customer!.id 
-            ? { 
-                ...c, 
-                fullName: editModal.newFullName || c.fullName,
-                balance: newAmount,
-                email: editModal.newEmail || c.email,
-                password: editModal.newPassword ? editModal.newPassword : c.password,
-              } 
-            : c
-        )
+      const updatedCustomers = customers.map((c) =>
+        c.id === editModal.customer!.id 
+          ? { 
+              ...c, 
+              fullName: editModal.newFullName || c.fullName,
+              balance: newAmount,
+              email: editModal.newEmail || c.email,
+              password: editModal.newPassword ? editModal.newPassword : c.password,
+            } 
+          : c
       )
+      setCustomers(updatedCustomers)
+      
+      // Manually update localStorage to ensure persistence
+      const allUsers = JSON.parse(localStorage.getItem('users_registry') || '[]')
+      const updatedUsers = allUsers.map((u: any) =>
+        u.id === editModal.customer!.id
+          ? {
+              ...u,
+              fullName: editModal.newFullName || u.fullName,
+              balance: newAmount,
+              email: editModal.newEmail || u.email,
+              password: editModal.newPassword ? editModal.newPassword : u.password,
+            }
+          : u
+      )
+      localStorage.setItem('users_registry', JSON.stringify(updatedUsers))
       
       // Update in UsersRegistry
       updateUser(editModal.customer.id, {
@@ -119,10 +143,10 @@ export const AdminUsersPage: React.FC = () => {
         password: editModal.newPassword ? editModal.newPassword : editModal.customer.password,
       })
 
-      // Update email in auth service if email was changed
+      // Update email in auth service if email was changed (clear old OTP record)
       if (editModal.newEmail && editModal.newEmail !== editModal.customer.email) {
         try {
-          authService.updateUserEmail(editModal.customer.email, editModal.newEmail)
+          await authService.updateUserEmail(editModal.customer.email, editModal.newEmail)
         } catch (error) {
           console.error('Error updating email:', error)
         }
@@ -151,6 +175,11 @@ export const AdminUsersPage: React.FC = () => {
 
   const handleDeleteCustomer = (id: string) => {
     setCustomers(customers.filter((c) => c.id !== id))
+    
+    // Also remove from UsersRegistry to persist deletion
+    const allUsers = JSON.parse(localStorage.getItem('users_registry') || '[]')
+    const updatedUsers = allUsers.filter((u: any) => u.id !== id)
+    localStorage.setItem('users_registry', JSON.stringify(updatedUsers))
   }
 
   const handleAddUser = () => {

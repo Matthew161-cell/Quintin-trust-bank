@@ -618,7 +618,7 @@ export const authService = {
   },
 
   // Update user email (called when admin changes user email)
-  updateUserEmail(oldEmail: string, newEmail: string): void {
+  async updateUserEmail(oldEmail: string, newEmail: string): Promise<void> {
     const normalizedOldEmail = oldEmail.trim().toLowerCase()
     const normalizedNewEmail = newEmail.trim().toLowerCase()
     
@@ -629,6 +629,19 @@ export const authService = {
     const users = getRegisteredUsers()
     if (!users[normalizedOldEmail]) {
       throw new Error('User not found')
+    }
+    
+    // Clear OTP for old email on backend (if any exists)
+    try {
+      // @ts-ignore
+      const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001'
+      await fetch(`${API_URL}/api/clear-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedOldEmail }),
+      })
+    } catch (error) {
+      console.warn('Could not clear old email OTP on backend:', error)
     }
     
     // Update email in localStorage
