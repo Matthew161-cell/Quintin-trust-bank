@@ -12,6 +12,7 @@ export const FeaturesGrid = () => {
       description: 'AI-powered accounts that learn your spending patterns and optimize savings automatically.',
       color: 'from-primary-400 to-primary-600',
       delay: 0,
+      image: 'https://images.unsplash.com/photo-1554224231-beab60d8376b?w=400&h=300&fit=crop',
     },
     {
       icon: Zap,
@@ -19,6 +20,7 @@ export const FeaturesGrid = () => {
       description: 'Send money globally in seconds. No delays, no hidden fees, no complexity.',
       color: 'from-cyan-400 to-cyan-600',
       delay: 0.1,
+      image: 'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=400&h=300&fit=crop',
     },
     {
       icon: Bitcoin,
@@ -26,6 +28,7 @@ export const FeaturesGrid = () => {
       description: 'Seamless crypto-to-fiat conversion with real-time market rates and low fees.',
       color: 'from-orange-400 to-orange-600',
       delay: 0.2,
+      image: 'https://images.unsplash.com/photo-1605792657692-4a78635c3c3a?w=400&h=300&fit=crop',
     },
     {
       icon: Building2,
@@ -33,6 +36,7 @@ export const FeaturesGrid = () => {
       description: 'Complete business banking suite designed for modern startups and enterprises.',
       color: 'from-purple-400 to-purple-600',
       delay: 0.3,
+      image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=300&fit=crop',
     },
     {
       icon: Shield,
@@ -40,6 +44,7 @@ export const FeaturesGrid = () => {
       description: 'Machine learning protects your account 24/7 with zero-day threat detection.',
       color: 'from-red-400 to-red-600',
       delay: 0.4,
+      image: 'https://images.unsplash.com/photo-1548050228-7898dc481cde?w=400&h=300&fit=crop',
     },
     {
       icon: Globe,
@@ -47,6 +52,7 @@ export const FeaturesGrid = () => {
       description: 'Access 150+ countries with optimized exchange rates and multi-currency support.',
       color: 'from-green-400 to-green-600',
       delay: 0.5,
+      image: 'https://images.unsplash.com/photo-1569163139394-de4798aa62b1?w=400&h=300&fit=crop',
     },
   ]
 
@@ -111,8 +117,17 @@ export const FeaturesGrid = () => {
                 key={feature.title}
                 variants={cardVariants}
                 whileHover="hover"
-                className="group card-glass"
+                className="group card-glass overflow-hidden"
               >
+                {/* Image */}
+                <div className="w-full h-48 overflow-hidden rounded-lg mb-4">
+                  <img 
+                    src={feature.image} 
+                    alt={feature.title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                </div>
+
                 {/* Icon */}
                 <motion.div
                   className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}
