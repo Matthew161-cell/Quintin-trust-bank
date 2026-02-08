@@ -24,23 +24,33 @@ export const Hero = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-primary-900 to-slate-900 pt-32 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <motion.div
-        className="absolute top-20 right-10 w-96 h-96 bg-primary-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"
-        animate={{
-          x: [0, 50, 0],
-          y: [0, -50, 0],
-        }}
-        transition={{ duration: 8, repeat: Infinity }}
-      />
-      <motion.div
-        className="absolute bottom-0 left-10 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10"
-        animate={{
-          x: [0, -50, 0],
-          y: [0, 50, 0],
-        }}
-        transition={{ duration: 10, repeat: Infinity }}
-      />
+      {/* Full Background Image Gallery */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden">
+        {[
+          'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=1200&h=800&fit=crop',
+          'https://images.unsplash.com/photo-1635236066449-5b45769be233?w=1200&h=800&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGNyeXB0byUyMGludGVyZ3JhdGlvbnxlbnwwfHwwfHx8MA%3D%3D',
+          'https://images.unsplash.com/photo-1666875758412-5957b60d7969?w=1200&h=800&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8ZnJhdWQlMjBkZXRlY3Rpb258ZW58MHx8MHx8fDA%3D',
+          'https://images.unsplash.com/photo-1731910549709-bfaffd5e73d9?w=1200&h=800&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8Z2xvYmFsJTIwdHJhbnNmZXJ8ZW58MHx8MHx8fDA%3D',
+        ].map((image, index) => (
+          <motion.img
+            key={index}
+            src={image}
+            alt={`Feature ${index}`}
+            className="absolute inset-0 w-full h-full object-cover"
+            initial={{ opacity: 0 }}
+            animate={{
+              opacity: index === 0 ? [0, 1, 1, 0] : index === 1 ? [0, 0, 1, 1, 0] : index === 2 ? [0, 0, 0, 1, 1, 0] : [0, 0, 0, 0, 1, 1],
+            }}
+            transition={{
+              duration: 16,
+              repeat: Infinity,
+              repeatType: 'loop',
+            }}
+          />
+        ))}
+        {/* Dark Overlay for Text Readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/70 to-slate-900/40" />
+      </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
         <motion.div
@@ -62,9 +72,9 @@ export const Hero = () => {
               variants={itemVariants}
               className="text-5xl md:text-6xl font-bold text-white leading-tight"
             >
-              Banking for the
+              Smart Money,
               <span className="block bg-gradient-to-r from-primary-400 to-cyan-400 bg-clip-text text-transparent">
-                AI Era
+                Smart Banking
               </span>
             </motion.h1>
 
@@ -115,7 +125,7 @@ export const Hero = () => {
             className="relative"
           >
             <motion.div
-              className="glass-dark rounded-3xl p-6 relative"
+              className="glass-dark rounded-3xl p-6 relative z-10"
               animate={{ y: [0, -20, 0] }}
               transition={{ duration: 4, repeat: Infinity }}
             >

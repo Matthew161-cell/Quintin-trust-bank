@@ -12,7 +12,7 @@ export const FeaturesGrid = () => {
       description: 'AI-powered accounts that learn your spending patterns and optimize savings automatically.',
       color: 'from-primary-400 to-primary-600',
       delay: 0,
-      image: 'https://images.unsplash.com/photo-1554224231-beab60d8376b?w=400&h=300&fit=crop',
+      image: 'https://images.unsplash.com/photo-1731566665644-c255417fa06d?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8c21hcnQlMjBhY2NvdW50fGVufDB8fDB8fHww',
     },
     {
       icon: Zap,
@@ -28,7 +28,7 @@ export const FeaturesGrid = () => {
       description: 'Seamless crypto-to-fiat conversion with real-time market rates and low fees.',
       color: 'from-orange-400 to-orange-600',
       delay: 0.2,
-      image: 'https://images.unsplash.com/photo-1605792657692-4a78635c3c3a?w=400&h=300&fit=crop',
+      image: 'https://images.unsplash.com/photo-1635236066449-5b45769be233?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGNyeXB0byUyMGludGVyZ3JhdGlvbnxlbnwwfHwwfHx8MA%3D%3D',
     },
     {
       icon: Building2,
@@ -36,7 +36,7 @@ export const FeaturesGrid = () => {
       description: 'Complete business banking suite designed for modern startups and enterprises.',
       color: 'from-purple-400 to-purple-600',
       delay: 0.3,
-      image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=300&fit=crop',
+      image: 'https://images.unsplash.com/photo-1616803140344-6682afb13cda?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YmFua2luZyUyMGJ1c2luZXNzfGVufDB8fDB8fHww',
     },
     {
       icon: Shield,
@@ -44,7 +44,7 @@ export const FeaturesGrid = () => {
       description: 'Machine learning protects your account 24/7 with zero-day threat detection.',
       color: 'from-red-400 to-red-600',
       delay: 0.4,
-      image: 'https://images.unsplash.com/photo-1548050228-7898dc481cde?w=400&h=300&fit=crop',
+      image: 'https://images.unsplash.com/photo-1666875758412-5957b60d7969?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8ZnJhdWQlMjBkZXRlY3Rpb258ZW58MHx8MHx8fDA%3D',
     },
     {
       icon: Globe,
@@ -52,7 +52,7 @@ export const FeaturesGrid = () => {
       description: 'Access 150+ countries with optimized exchange rates and multi-currency support.',
       color: 'from-green-400 to-green-600',
       delay: 0.5,
-      image: 'https://images.unsplash.com/photo-1569163139394-de4798aa62b1?w=400&h=300&fit=crop',
+      image: 'https://images.unsplash.com/photo-1731910549709-bfaffd5e73d9?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8Z2xvYmFsJTIwdHJhbnNmZXJ8ZW58MHx8MHx8fDA%3D',
     },
   ]
 
