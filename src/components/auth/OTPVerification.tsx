@@ -47,8 +47,7 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
 
   useEffect(() => {
     // Skip if parent component already requested it (e.g., TransferPage)
-    if (!otpRequestedRef.current && !loading && !skipAutoRequestly once using ref)
-    if (!otpRequestedRef.current && !loading) {
+    if (!otpRequestedRef.current && !loading && !skipAutoRequest) {
       otpRequestedRef.current = true
       handleRequestOTP()
     }
