@@ -45,10 +45,8 @@ const loadPersistentData = () => {
 // Save data to file (optional - for production)
 const savePersistentData = () => {
   try {
-    const fs = await import('fs')
-    const data = { transactions: transactionsStore, customerData: customerDataStore }
-    // Uncomment to enable file-based persistence
-    // fs.writeFileSync('./data.json', JSON.stringify(data, null, 2))
+    // This can be enhanced to save to a file in production
+    // For now, data is kept in memory (transactionsStore, customerDataStore, adminDataStore)
   } catch (e) {
     // File operations not available
   }
