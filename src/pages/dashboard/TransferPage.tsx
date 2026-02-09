@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight, Globe, Home, CheckCircle, AlertCircle, Loader } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -29,9 +29,23 @@ export const TransferPage: React.FC = () => {
   const { user, logout } = useAuth()
   const { settings } = useTransferSettings()
   const { getUserTransferSettings } = useUserTransferSettings()
-  const { updateCustomer } = useCustomerData()
+  const { updateCustomer, getCustomer } = useCustomerData()
   const navigate = useNavigate()
-  const balance = (user as any)?.balance || 0
+
+  // State for reactive balance
+  const [displayBalance, setDisplayBalance] = useState<number>((user as any)?.balance || 0)
+
+  // Update balance whenever user email changes or on component mount
+  useEffect(() => {
+    if (user?.email) {
+      const customerData = getCustomer(user.email)
+      if (customerData) {
+        setDisplayBalance(customerData.balance)
+      } else {
+        setDisplayBalance((user as any)?.balance || 0)
+      }
+    }
+  }, [user?.email, getCustomer])
 
   // Get user-specific transfer settings
   const userTransferSettings = getUserTransferSettings(user?.id || '')
@@ -187,9 +201,11 @@ export const TransferPage: React.FC = () => {
         amount: parseFloat(pendingTransfer.amount),
         currency: pendingTransfer.currency,
         description: pendingTransfer.description,
+        country: pendingTransfer.country,
+        bankAddress: pendingTransfer.bankAddress,
         status: 'completed',
         timestamp: new Date().toISOString(),
-        fee: transferType === 'international' ? parseFloat(pendingTransfer.amount) * 0.01 : 0, // 1% fee for international
+        fee: transferType === 'international' ? parseFloat(pendingTransfer.amount) * 0.01 : 0,
       }
 
       // Save to transaction history (in a real app, this would be saved to backend)
@@ -200,7 +216,10 @@ export const TransferPage: React.FC = () => {
       // Update user balance
       const transferAmount = parseFloat(pendingTransfer.amount)
       const fee = transferType === 'international' ? transferAmount * 0.01 : 0
-      const newBalance = balance - transferAmount - fee
+      const newBalance = displayBalance - transferAmount - fee
+
+      // Update display balance immediately
+      setDisplayBalance(newBalance)
 
       // Update customer data context
       if (user?.id) {
@@ -541,12 +560,18 @@ export const TransferPage: React.FC = () => {
                     whileHover={{ scale: 1.02 }}
                   >
                     <p className="text-sm text-slate-300 mb-2">Current Balance</p>
-                    <p className="text-3xl font-bold text-white mb-1">
-                      ${balance.toLocaleString('en-US', {
+                    <motion.p 
+                      className="text-3xl font-bold text-white mb-1"
+                      key={displayBalance}
+                      initial={{ scale: 1 }}
+                      animate={{ scale: [1, 1.05, 1] }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      ${displayBalance.toLocaleString('en-US', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
-                    </p>
+                    </motion.p>
                     <p className="text-xs text-slate-400">Available for transfer</p>
                   </motion.div>
 
