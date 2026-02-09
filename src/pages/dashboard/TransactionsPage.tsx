@@ -239,9 +239,9 @@ export const TransactionsPage: React.FC = () => {
               whileHover={{ y: -4 }}
               className="group"
             >
-              <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/20 hover:border-white/40 rounded-2xl p-6 backdrop-blur-xl transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-500/10">
+              <div className="bg-slate-800/60 border border-slate-700/50 hover:border-cyan-500/30 rounded-2xl p-6 backdrop-blur-xl transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-500/10">
                 {/* Transaction Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-6 border-b border-white/10">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-6 border-b border-slate-700/50">
                   <div className="flex items-center gap-4">
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-xl ${
                       tx.type === 'receive' || tx.type === 'buy'
@@ -256,12 +256,12 @@ export const TransactionsPage: React.FC = () => {
                       <p className="text-white font-bold text-lg">
                         {tx.type === 'receive' ? 'Money Received' : tx.type === 'buy' ? 'Purchase' : tx.type === 'send' ? 'Money Sent' : 'Transfer'}
                       </p>
-                      <p className="text-slate-400 text-sm">{tx.timestamp}</p>
+                      <p className="text-slate-300 text-sm">{tx.timestamp}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className={`text-2xl font-bold ${
-                      tx.type === 'receive' || tx.type === 'buy' ? 'text-emerald-400' : 'text-slate-200'
+                      tx.type === 'receive' || tx.type === 'buy' ? 'text-emerald-400' : 'text-cyan-400'
                     }`}>
                       {tx.type === 'receive' || tx.type === 'buy' ? '+' : '-'}{tx.amount.toFixed(2)} {tx.currency}
                     </p>
@@ -271,54 +271,58 @@ export const TransactionsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Transaction Details Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-                  <div className="bg-white/5 rounded-xl p-4">
+                {/* Core Transaction Details */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                  <div className="bg-slate-700/40 rounded-lg p-4 border border-slate-600/30">
                     <p className="text-slate-400 text-xs font-semibold uppercase mb-2">From</p>
                     <p className="text-white font-semibold truncate">{tx.from}</p>
                   </div>
-                  <div className="bg-white/5 rounded-xl p-4">
-                    <p className="text-slate-400 text-xs font-semibold uppercase mb-2">To</p>
+                  <div className="bg-slate-700/40 rounded-lg p-4 border border-slate-600/30">
+                    <p className="text-slate-400 text-xs font-semibold uppercase mb-2">Recipient Name</p>
+                    <p className="text-white font-semibold truncate">{tx.recipientName || tx.to || 'N/A'}</p>
+                  </div>
+                  <div className="bg-slate-700/40 rounded-lg p-4 border border-slate-600/30">
+                    <p className="text-slate-400 text-xs font-semibold uppercase mb-2">Account Number</p>
                     <p className="text-white font-semibold truncate">{tx.to}</p>
                   </div>
-                  <div className="bg-white/5 rounded-xl p-4">
-                    <p className="text-slate-400 text-xs font-semibold uppercase mb-2">Fee</p>
-                    <p className="text-white font-semibold">{tx.fee?.toFixed(2) || '0.00'} {tx.currency}</p>
+                  <div className="bg-slate-700/40 rounded-lg p-4 border border-slate-600/30">
+                    <p className="text-slate-400 text-xs font-semibold uppercase mb-2">Currency</p>
+                    <p className="text-white font-semibold">{tx.currency}</p>
                   </div>
                 </div>
 
-                {/* Additional Details */}
+                {/* Additional Transfer Details */}
                 {(() => {
                   const details = getTransferDetails(tx)
-                  const hasCountry = details.country && details.country !== 'N/A'
-                  const hasBankAddress = details.bankAddress && details.bankAddress !== 'N/A'
-                  const hasDescription = details.description && details.description !== 'N/A' && details.description !== 'No description'
-                  
-                  return (hasCountry || hasBankAddress || hasDescription) ? (
-                    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                      <p className="text-slate-400 text-xs font-semibold uppercase mb-3">Additional Information</p>
-                      <div className="space-y-2">
-                        {hasCountry && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-slate-400 text-sm">Country</span>
-                            <span className="text-white font-medium">{details.country}</span>
-                          </div>
-                        )}
-                        {hasBankAddress && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-slate-400 text-sm">Bank Address</span>
-                            <span className="text-white font-medium">{details.bankAddress}</span>
-                          </div>
-                        )}
-                        {hasDescription && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-slate-400 text-sm">Description</span>
-                            <span className="text-white font-medium">{details.description}</span>
+                  return (
+                    <div className="bg-slate-700/40 rounded-lg p-4 border border-slate-600/30">
+                      <p className="text-slate-300 text-xs font-semibold uppercase mb-4 pb-2 border-b border-slate-600/30">Transfer Details</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-slate-400 text-xs font-semibold uppercase mb-1">Country</p>
+                          <p className="text-white font-medium">{details.country}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 text-xs font-semibold uppercase mb-1">Bank Address</p>
+                          <p className="text-white font-medium">{details.bankAddress}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 text-xs font-semibold uppercase mb-1">Fee</p>
+                          <p className="text-white font-medium">{tx.fee?.toFixed(2) || '0.00'} {tx.currency}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 text-xs font-semibold uppercase mb-1">Amount</p>
+                          <p className="text-cyan-400 font-medium font-bold">{tx.amount.toFixed(2)} {tx.currency}</p>
+                        </div>
+                        {details.description && details.description !== 'No description' && (
+                          <div className="sm:col-span-2">
+                            <p className="text-slate-400 text-xs font-semibold uppercase mb-1">Description</p>
+                            <p className="text-white font-medium">{details.description}</p>
                           </div>
                         )}
                       </div>
                     </div>
-                  ) : null
+                  )
                 })()}
               </div>
             </motion.div>
