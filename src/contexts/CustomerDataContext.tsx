@@ -146,6 +146,20 @@ export const CustomerDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
             console.error('Balance sync error:', error)
           )
         }
+
+        // Also update users_registry so admin dashboard reflects the same balance
+        try {
+          const usersRegistry = JSON.parse(localStorage.getItem('users_registry') || '[]')
+          const updatedRegistry = usersRegistry.map((u: any) =>
+            u.email?.toLowerCase() === customer.email.toLowerCase()
+              ? { ...u, balance: customer.balance, fullName: customer.fullName }
+              : u
+          )
+          localStorage.setItem('users_registry', JSON.stringify(updatedRegistry))
+          syncService.saveUsers(updatedRegistry).catch(() => {})
+        } catch {
+          // Ignore parse errors
+        }
       }
       
       return updated

@@ -69,7 +69,7 @@ const convertStoredToTransaction = (stored: StoredTransaction): Transaction => {
     id: stored.id,
     type: 'send', // User transfers are always 'send'
     from: stored.from,
-    to: stored.recipientName,
+    to: stored.to,
     amount: stored.amount,
     currency: stored.currency,
     status: stored.status as 'completed' | 'pending' | 'failed',

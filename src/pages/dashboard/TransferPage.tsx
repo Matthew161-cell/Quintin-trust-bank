@@ -237,6 +237,21 @@ export const TransferPage: React.FC = () => {
         syncService.updateBalance(user.email, newBalance)
       }
 
+      // Also update users_registry so admin dashboard sees the new balance
+      try {
+        const usersRegistry = JSON.parse(localStorage.getItem('users_registry') || '[]')
+        const updatedRegistry = usersRegistry.map((u: any) =>
+          u.email?.toLowerCase() === user?.email?.toLowerCase()
+            ? { ...u, balance: newBalance }
+            : u
+        )
+        localStorage.setItem('users_registry', JSON.stringify(updatedRegistry))
+        // Sync updated users list to backend so admin sees it on any device
+        syncService.saveUsers(updatedRegistry).catch(() => {})
+      } catch (e) {
+        console.error('Failed to update users_registry after transfer:', e)
+      }
+
       // Clear OTP after successful transfer
       const gmailAddress = (user as any)?.gmailAddress || user?.email
       otpService.clearOTP(gmailAddress)
