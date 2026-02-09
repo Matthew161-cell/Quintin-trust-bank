@@ -180,7 +180,7 @@ export const TransferPage: React.FC = () => {
         id: `transfer_${Date.now()}`,
         type: transferType,
         from: user?.email,
-        to: transferType === 'local' ? pendingTransfer.recipientEmail : pendingTransfer.iban,
+        to: transferType === 'local' ? pendingTransfer.accountNumber : pendingTransfer.iban,
         recipientName: pendingTransfer.recipientName,
         amount: parseFloat(pendingTransfer.amount),
         currency: pendingTransfer.currency,
@@ -203,9 +203,10 @@ export const TransferPage: React.FC = () => {
       setTimeout(() => {
         setFormData({
           recipientName: '',
-          recipientEmail: '',
           accountNumber: '',
           iban: '',
+          country: '',
+          bankAddress: '',
           amount: '',
           currency: 'USD',
           description: '',
