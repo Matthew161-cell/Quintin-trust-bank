@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Download, Filter, Calendar } from 'lucide-react'
+import { Download, Filter } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 
 interface StoredTransaction {
@@ -15,6 +15,8 @@ interface StoredTransaction {
   status: string
   timestamp: string
   fee?: number
+  country?: string
+  bankAddress?: string
 }
 
 interface Transaction {
@@ -27,6 +29,10 @@ interface Transaction {
   status: 'completed' | 'pending' | 'failed'
   timestamp: string
   fee: number
+  recipientName?: string
+  country?: string
+  bankAddress?: string
+  description?: string
 }
 
 const getStatusColor = (status: string) => {
@@ -74,6 +80,20 @@ const convertStoredToTransaction = (stored: StoredTransaction): Transaction => {
       minute: '2-digit'
     }),
     fee: stored.fee || 0,
+    recipientName: stored.recipientName,
+    country: stored.country,
+    bankAddress: stored.bankAddress,
+    description: stored.description,
+  }
+}
+
+const getTransferDetails = (tx: Transaction) => {
+  return {
+    id: tx.id,
+    recipientName: tx.recipientName || 'N/A',
+    country: tx.country || 'N/A',
+    bankAddress: tx.bankAddress || 'N/A',
+    description: tx.description || 'No description',
   }
 }
 
@@ -153,41 +173,47 @@ export const TransactionsPage: React.FC = () => {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-8 max-w-7xl mx-auto">
+      {/* Header Section */}
       <motion.div
-        className="mb-8 flex items-center justify-between"
+        className="mb-12"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Transactions</h1>
-          <p className="text-slate-400">View and manage all your transactions</p>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-2">
+              Transactions
+            </h1>
+            <p className="text-slate-400 text-lg">
+              {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''} found
+            </p>
+          </div>
+          <motion.button
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 rounded-xl text-white font-semibold transition-all shadow-lg shadow-cyan-500/20"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Download size={18} />
+            Export Report
+          </motion.button>
         </div>
-        <motion.button
-          className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white font-medium transition-all"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <Download size={18} />
-          Export
-        </motion.button>
-      </motion.div>
 
-      {/* Filters */}
-      <motion.div
-        className="flex flex-col sm:flex-row gap-4 mb-8"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div className="flex gap-2 flex-wrap">
+        {/* Filter Pills */}
+        <motion.div
+          className="flex flex-wrap gap-3"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+        >
           {['all', 'completed', 'pending', 'failed'].map((status) => (
             <motion.button
               key={status}
               onClick={() => setFilterStatus(status)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all border ${
+              className={`px-5 py-2.5 rounded-full font-semibold transition-all border text-sm ${
                 filterStatus === status
-                  ? 'bg-primary-500 text-white border-primary-400'
-                  : 'bg-white/10 text-slate-300 border-white/20 hover:bg-white/20'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-cyan-400 shadow-lg shadow-cyan-500/20'
+                  : 'bg-white/10 text-slate-300 border-white/20 hover:bg-white/15 hover:border-white/30'
               }`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -195,79 +221,119 @@ export const TransactionsPage: React.FC = () => {
               {status.charAt(0).toUpperCase() + status.slice(1)}
             </motion.button>
           ))}
-        </div>
-        <div className="flex items-center gap-2 ml-auto">
-          <Filter size={18} className="text-slate-400" />
-          <Calendar size={18} className="text-slate-400" />
-        </div>
+        </motion.div>
       </motion.div>
 
-      {/* Transactions Table */}
+      {/* Transactions Grid */}
       <motion.div
-        className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-xl"
+        className="grid gap-4"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        <div className="hidden lg:grid grid-cols-6 gap-4 p-6 border-b border-white/10 bg-white/5">
-          <p className="text-slate-400 text-sm font-semibold">Type</p>
-          <p className="text-slate-400 text-sm font-semibold">Amount</p>
-          <p className="text-slate-400 text-sm font-semibold">From</p>
-          <p className="text-slate-400 text-sm font-semibold">To</p>
-          <p className="text-slate-400 text-sm font-semibold">Status</p>
-          <p className="text-slate-400 text-sm font-semibold">Date</p>
-        </div>
-
         {filteredTransactions.length > 0 ? (
-          filteredTransactions.map((tx) => (
+          filteredTransactions.map((tx, idx) => (
             <motion.div
-              key={tx.id}
-              className="lg:grid lg:grid-cols-6 gap-4 p-6 border-b border-white/5 hover:bg-white/5 transition-colors"
+              key={tx.id || idx}
               variants={itemVariants}
+              whileHover={{ y: -4 }}
+              className="group"
             >
-              <div className="flex items-center gap-3 mb-4 lg:mb-0">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-cyan-400 flex items-center justify-center text-white font-bold">
-                  {getTypeIcon(tx.type)}
+              <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/20 hover:border-white/40 rounded-2xl p-6 backdrop-blur-xl transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-500/10">
+                {/* Transaction Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-6 border-b border-white/10">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-xl ${
+                      tx.type === 'receive' || tx.type === 'buy'
+                        ? 'bg-gradient-to-br from-emerald-500 to-teal-500'
+                        : tx.type === 'send'
+                        ? 'bg-gradient-to-br from-orange-500 to-red-500'
+                        : 'bg-gradient-to-br from-cyan-500 to-blue-500'
+                    }`}>
+                      {getTypeIcon(tx.type)}
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-lg">
+                        {tx.type === 'receive' ? 'Money Received' : tx.type === 'buy' ? 'Purchase' : tx.type === 'send' ? 'Money Sent' : 'Transfer'}
+                      </p>
+                      <p className="text-slate-400 text-sm">{tx.timestamp}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-2xl font-bold ${
+                      tx.type === 'receive' || tx.type === 'buy' ? 'text-emerald-400' : 'text-slate-200'
+                    }`}>
+                      {tx.type === 'receive' || tx.type === 'buy' ? '+' : '-'}{tx.amount.toFixed(2)} {tx.currency}
+                    </p>
+                    <span className={`inline-block px-4 py-1.5 rounded-full text-xs font-bold border mt-2 ${getStatusColor(tx.status)}`}>
+                      {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-white font-semibold text-sm lg:hidden">
-                  {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}
-                </span>
-              </div>
 
-              <div className="mb-4 lg:mb-0">
-                <p className="text-slate-400 text-xs lg:hidden mb-1">Amount</p>
-                <p className="text-white font-bold">
-                  {tx.type === 'receive' || tx.type === 'buy' ? '+' : '-'}{tx.amount} {tx.currency}
-                </p>
-              </div>
+                {/* Transaction Details Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+                  <div className="bg-white/5 rounded-xl p-4">
+                    <p className="text-slate-400 text-xs font-semibold uppercase mb-2">From</p>
+                    <p className="text-white font-semibold truncate">{tx.from}</p>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-4">
+                    <p className="text-slate-400 text-xs font-semibold uppercase mb-2">To</p>
+                    <p className="text-white font-semibold truncate">{tx.to}</p>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-4">
+                    <p className="text-slate-400 text-xs font-semibold uppercase mb-2">Fee</p>
+                    <p className="text-white font-semibold">{tx.fee?.toFixed(2) || '0.00'} {tx.currency}</p>
+                  </div>
+                </div>
 
-              <div className="mb-4 lg:mb-0">
-                <p className="text-slate-400 text-xs lg:hidden mb-1">From</p>
-                <p className="text-slate-300 text-sm truncate">{tx.from}</p>
-              </div>
-
-              <div className="mb-4 lg:mb-0">
-                <p className="text-slate-400 text-xs lg:hidden mb-1">To</p>
-                <p className="text-slate-300 text-sm truncate">{tx.to}</p>
-              </div>
-
-              <div className="mb-4 lg:mb-0">
-                <p className="text-slate-400 text-xs lg:hidden mb-1">Status</p>
-                <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(tx.status)}`}>
-                  {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
-                </span>
-              </div>
-
-              <div>
-                <p className="text-slate-400 text-xs lg:hidden mb-1">Date</p>
-                <p className="text-slate-400 text-sm">{tx.timestamp}</p>
+                {/* Additional Details */}
+                {(() => {
+                  const details = getTransferDetails(tx)
+                  const hasCountry = details.country && details.country !== 'N/A'
+                  const hasBankAddress = details.bankAddress && details.bankAddress !== 'N/A'
+                  const hasDescription = details.description && details.description !== 'N/A' && details.description !== 'No description'
+                  
+                  return (hasCountry || hasBankAddress || hasDescription) ? (
+                    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                      <p className="text-slate-400 text-xs font-semibold uppercase mb-3">Additional Information</p>
+                      <div className="space-y-2">
+                        {hasCountry && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 text-sm">Country</span>
+                            <span className="text-white font-medium">{details.country}</span>
+                          </div>
+                        )}
+                        {hasBankAddress && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 text-sm">Bank Address</span>
+                            <span className="text-white font-medium">{details.bankAddress}</span>
+                          </div>
+                        )}
+                        {hasDescription && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 text-sm">Description</span>
+                            <span className="text-white font-medium">{details.description}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : null
+                })()}
               </div>
             </motion.div>
           ))
         ) : (
-          <div className="p-8 text-center">
-            <p className="text-slate-400">No transactions found</p>
-          </div>
+          <motion.div
+            className="text-center py-16"
+            variants={itemVariants}
+          >
+            <div className="inline-block mb-4 p-4 bg-white/10 rounded-2xl">
+              <Filter size={32} className="text-slate-400" />
+            </div>
+            <p className="text-slate-400 text-lg">No transactions found</p>
+            <p className="text-slate-500 text-sm mt-2">Try adjusting your filters</p>
+          </motion.div>
         )}
       </motion.div>
     </div>
