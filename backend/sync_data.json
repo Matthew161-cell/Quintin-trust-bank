@@ -1,0 +1,13 @@
+{
+  "transactions": {},
+  "customerData": {},
+  "adminData": {},
+  "usersRegistry": [],
+  "globalTransferSettings": {
+    "transfersEnabled": true,
+    "successRate": 100,
+    "dailyLimit": 100000
+  },
+  "userTransferSettings": {},
+  "savedAt": "2026-02-09T18:18:57.010Z"
+}

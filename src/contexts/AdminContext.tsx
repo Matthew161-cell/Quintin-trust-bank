@@ -95,7 +95,18 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const normalizedEmail = email.trim().toLowerCase()
       
-      // Get users from localStorage (same source as authService)
+      // Try to sync users from backend first (in case users were changed on another device)
+      try {
+        const backendUsers = await syncService.fetchUsers()
+        if (backendUsers && backendUsers.length > 0) {
+          localStorage.setItem('users_registry', JSON.stringify(backendUsers))
+          console.log('✅ Users synced from backend before admin login')
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not sync users from backend before login:', error)
+      }
+
+      // Get users from localStorage (now potentially updated from backend)
       const stored = localStorage.getItem('users_registry')
       if (!stored) {
         throw new Error('No users found. System not initialized.')

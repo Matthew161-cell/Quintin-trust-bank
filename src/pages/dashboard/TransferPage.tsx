@@ -30,13 +30,13 @@ export const TransferPage: React.FC = () => {
   const { user, logout } = useAuth()
   const { settings } = useTransferSettings()
   const { getUserTransferSettings } = useUserTransferSettings()
-  const { updateCustomer, getCustomer } = useCustomerData()
+  const { updateCustomer, getCustomer, customers } = useCustomerData()
   const navigate = useNavigate()
 
   // State for reactive balance
   const [displayBalance, setDisplayBalance] = useState<number>((user as any)?.balance || 0)
 
-  // Update balance whenever user email changes or on component mount
+  // Update balance whenever user email changes, customer data changes, or on component mount
   useEffect(() => {
     if (user?.email) {
       const customerData = getCustomer(user.email)
@@ -46,7 +46,7 @@ export const TransferPage: React.FC = () => {
         setDisplayBalance((user as any)?.balance || 0)
       }
     }
-  }, [user?.email, getCustomer])
+  }, [user?.email, getCustomer, customers])
 
   // Get user-specific transfer settings
   const userTransferSettings = getUserTransferSettings(user?.id || '')

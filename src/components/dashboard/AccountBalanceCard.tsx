@@ -21,18 +21,18 @@ export const AccountBalanceCard: React.FC<AccountBalanceCardProps> = ({
 }) => {
   const [showBalance, setShowBalance] = useState(true)
   const { user } = useAuth()
-  const { getCustomer } = useCustomerData()
+  const { getCustomer, customers } = useCustomerData()
   const [displayBalance, setDisplayBalance] = useState(balance)
 
-  // Check if admin has edited this customer's balance
+  // Check if admin has edited this customer's balance - reactive to context changes
   useEffect(() => {
     if (user?.email) {
       const customerData = getCustomer(user.email)
-      if (customerData && customerData.balance) {
+      if (customerData && customerData.balance !== undefined) {
         setDisplayBalance(customerData.balance)
       }
     }
-  }, [user?.email, getCustomer])
+  }, [user?.email, getCustomer, customers])
 
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },

@@ -2,8 +2,14 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import sgMail from '@sendgrid/mail'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 dotenv.config()
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -25,32 +31,58 @@ const transactionsStore = {} // email -> [transactions]
 const customerDataStore = {} // email -> { balance, fullName, phone, etc }
 const adminDataStore = {} // email -> { role, permissions, adminSettings, etc }
 let usersRegistry = [] // All registered users - synced across devices
+let globalTransferSettings = { transfersEnabled: true, successRate: 100, dailyLimit: 100000 } // Global transfer settings
+const userTransferSettingsStore = {} // userId -> { transfersEnabled, successRate }
 
-// Load initial data on startup (could be from a file in production)
+// File-based persistence
+const DATA_FILE = path.join(__dirname, 'sync_data.json')
+
+// Load persistent data from file on startup
 const loadPersistentData = () => {
-  // This can be enhanced to load from a file or database
   try {
-    const stored = localStorage?.getItem?.('sync_data')
-    if (stored) {
-      const data = JSON.parse(stored)
+    if (fs.existsSync(DATA_FILE)) {
+      const raw = fs.readFileSync(DATA_FILE, 'utf8')
+      const data = JSON.parse(raw)
       Object.assign(transactionsStore, data.transactions || {})
       Object.assign(customerDataStore, data.customerData || {})
-      console.log('✅ Loaded persistent data from storage')
+      Object.assign(adminDataStore, data.adminData || {})
+      Object.assign(userTransferSettingsStore, data.userTransferSettings || {})
+      if (data.usersRegistry && Array.isArray(data.usersRegistry) && data.usersRegistry.length > 0) {
+        usersRegistry = data.usersRegistry
+      }
+      if (data.globalTransferSettings) {
+        globalTransferSettings = data.globalTransferSettings
+      }
+      console.log('✅ Loaded persistent data from file')
+      console.log(`   Users: ${usersRegistry.length}, Customers: ${Object.keys(customerDataStore).length}, Transactions: ${Object.keys(transactionsStore).length}`)
+    } else {
+      console.log('ℹ️  No persistent data file found on startup - starting fresh')
     }
   } catch (e) {
-    console.log('ℹ️  No persistent data found on startup')
+    console.log('⚠️  Error loading persistent data:', e.message)
   }
 }
 
-// Save data to file (optional - for production)
+// Save all data to file for persistence across restarts
 const savePersistentData = () => {
   try {
-    // This can be enhanced to save to a file in production
-    // For now, data is kept in memory (transactionsStore, customerDataStore, adminDataStore)
+    const data = {
+      transactions: transactionsStore,
+      customerData: customerDataStore,
+      adminData: adminDataStore,
+      usersRegistry: usersRegistry,
+      globalTransferSettings: globalTransferSettings,
+      userTransferSettings: userTransferSettingsStore,
+      savedAt: new Date().toISOString(),
+    }
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8')
   } catch (e) {
-    // File operations not available
+    console.warn('⚠️  Failed to save persistent data:', e.message)
   }
 }
+
+// Auto-save every 30 seconds
+setInterval(savePersistentData, 30000)
 
 loadPersistentData()
 
@@ -347,6 +379,7 @@ app.post('/api/sync/transactions', (req, res) => {
     }
 
     console.log(`✅ Transaction saved for ${normalizedEmail}`)
+    savePersistentData()
 
     res.json({
       success: true,
@@ -399,6 +432,7 @@ app.post('/api/sync/customer', (req, res) => {
     }
 
     console.log(`✅ Customer data updated for ${normalizedEmail}`)
+    savePersistentData()
 
     res.json({
       success: true,
@@ -450,6 +484,7 @@ app.post('/api/sync/balance', (req, res) => {
     customerDataStore[normalizedEmail].lastUpdated = new Date().toISOString()
 
     console.log(`✅ Balance updated for ${normalizedEmail}: ${balance}`)
+    savePersistentData()
 
     res.json({
       success: true,
@@ -484,6 +519,7 @@ app.post('/api/sync/admin', (req, res) => {
     }
 
     console.log(`✅ Admin data synced for ${normalizedEmail}`)
+    savePersistentData()
 
     res.json({
       success: true,
@@ -535,6 +571,7 @@ app.post('/api/sync/admin-settings', (req, res) => {
     adminDataStore[normalizedEmail].settingsUpdatedAt = new Date().toISOString()
 
     console.log(`✅ Admin settings updated for ${normalizedEmail}`)
+    savePersistentData()
 
     res.json({
       success: true,
@@ -577,11 +614,154 @@ app.post('/api/sync/users', (req, res) => {
     usersRegistry = users
 
     console.log(`✅ Users registry synced: ${users.length} users`)
+    savePersistentData()
 
     res.json({
       success: true,
       message: 'Users registry updated',
       userCount: users.length,
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * GET /api/sync/transfer-settings - Get global transfer settings
+ */
+app.get('/api/sync/transfer-settings', (req, res) => {
+  try {
+    res.json({
+      success: true,
+      settings: globalTransferSettings,
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * POST /api/sync/transfer-settings - Save global transfer settings
+ */
+app.post('/api/sync/transfer-settings', (req, res) => {
+  try {
+    const { settings } = req.body
+
+    if (!settings) {
+      return res.status(400).json({ success: false, message: 'Settings required' })
+    }
+
+    globalTransferSettings = {
+      ...globalTransferSettings,
+      ...settings,
+      lastUpdated: new Date().toISOString(),
+    }
+
+    console.log(`✅ Global transfer settings updated:`, globalTransferSettings)
+    savePersistentData()
+
+    res.json({
+      success: true,
+      message: 'Transfer settings saved',
+      settings: globalTransferSettings,
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * GET /api/sync/user-transfer-settings - Get all user transfer settings
+ */
+app.get('/api/sync/user-transfer-settings', (req, res) => {
+  try {
+    res.json({
+      success: true,
+      settings: userTransferSettingsStore,
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * GET /api/sync/user-transfer-settings/:userId - Get transfer settings for a specific user
+ */
+app.get('/api/sync/user-transfer-settings/:userId', (req, res) => {
+  try {
+    const userId = req.params.userId
+    const settings = userTransferSettingsStore[userId] || {
+      userId,
+      transfersEnabled: true,
+      successRate: 100,
+    }
+
+    res.json({
+      success: true,
+      settings,
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * POST /api/sync/user-transfer-settings - Save user transfer settings
+ */
+app.post('/api/sync/user-transfer-settings', (req, res) => {
+  try {
+    const { userId, settings } = req.body
+
+    if (!userId || !settings) {
+      return res.status(400).json({ success: false, message: 'userId and settings required' })
+    }
+
+    userTransferSettingsStore[userId] = {
+      userId,
+      transfersEnabled: settings.transfersEnabled !== undefined ? settings.transfersEnabled : true,
+      successRate: settings.successRate !== undefined ? settings.successRate : 100,
+      lastUpdated: new Date().toISOString(),
+    }
+
+    console.log(`✅ User transfer settings updated for ${userId}:`, userTransferSettingsStore[userId])
+    savePersistentData()
+
+    res.json({
+      success: true,
+      message: 'User transfer settings saved',
+      settings: userTransferSettingsStore[userId],
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * POST /api/sync/user-transfer-settings/bulk - Save all user transfer settings at once
+ */
+app.post('/api/sync/user-transfer-settings/bulk', (req, res) => {
+  try {
+    const { settings } = req.body
+
+    if (!settings || typeof settings !== 'object') {
+      return res.status(400).json({ success: false, message: 'Settings object required' })
+    }
+
+    Object.assign(userTransferSettingsStore, settings)
+
+    console.log(`✅ Bulk user transfer settings synced: ${Object.keys(settings).length} users`)
+    savePersistentData()
+
+    res.json({
+      success: true,
+      message: 'Bulk user transfer settings saved',
+      count: Object.keys(settings).length,
     })
   } catch (error) {
     console.error('Error:', error)

@@ -283,4 +283,135 @@ export const syncService = {
       // Don't throw - allow offline operation
     }
   },
+
+  /**
+   * Fetch global transfer settings from the backend
+   */
+  async fetchTransferSettings(): Promise<{ transfersEnabled: boolean; successRate: number; dailyLimit: number } | null> {
+    try {
+      const response = await fetch(`${API_URL}/api/sync/transfer-settings`)
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch transfer settings: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      console.log('✅ Transfer settings fetched from backend')
+      return data.settings || null
+    } catch (error) {
+      console.warn('⚠️ Failed to fetch transfer settings from backend:', error)
+      return null
+    }
+  },
+
+  /**
+   * Save global transfer settings to the backend
+   */
+  async saveTransferSettings(settings: { transfersEnabled?: boolean; successRate?: number; dailyLimit?: number }): Promise<void> {
+    try {
+      const response = await fetch(`${API_URL}/api/sync/transfer-settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ settings }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to save transfer settings: ${response.statusText}`)
+      }
+
+      console.log('✅ Transfer settings synced to backend')
+    } catch (error) {
+      console.warn('⚠️ Failed to sync transfer settings to backend:', error)
+    }
+  },
+
+  /**
+   * Fetch all user transfer settings from the backend
+   */
+  async fetchAllUserTransferSettings(): Promise<Record<string, any> | null> {
+    try {
+      const response = await fetch(`${API_URL}/api/sync/user-transfer-settings`)
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch user transfer settings: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      console.log('✅ All user transfer settings fetched from backend')
+      return data.settings || null
+    } catch (error) {
+      console.warn('⚠️ Failed to fetch user transfer settings from backend:', error)
+      return null
+    }
+  },
+
+  /**
+   * Fetch transfer settings for a specific user from the backend
+   */
+  async fetchUserTransferSettings(userId: string): Promise<{ userId: string; transfersEnabled: boolean; successRate: number } | null> {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/sync/user-transfer-settings/${encodeURIComponent(userId)}`
+      )
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch user transfer settings: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      console.log('✅ User transfer settings fetched from backend for', userId)
+      return data.settings || null
+    } catch (error) {
+      console.warn('⚠️ Failed to fetch user transfer settings from backend:', error)
+      return null
+    }
+  },
+
+  /**
+   * Save transfer settings for a specific user to the backend
+   */
+  async saveUserTransferSettings(userId: string, settings: { transfersEnabled?: boolean; successRate?: number }): Promise<void> {
+    try {
+      const response = await fetch(`${API_URL}/api/sync/user-transfer-settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, settings }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to save user transfer settings: ${response.statusText}`)
+      }
+
+      console.log('✅ User transfer settings synced to backend for', userId)
+    } catch (error) {
+      console.warn('⚠️ Failed to sync user transfer settings to backend:', error)
+    }
+  },
+
+  /**
+   * Save all user transfer settings to the backend in bulk
+   */
+  async saveAllUserTransferSettings(settings: Record<string, any>): Promise<void> {
+    try {
+      const response = await fetch(`${API_URL}/api/sync/user-transfer-settings/bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ settings }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to bulk save user transfer settings: ${response.statusText}`)
+      }
+
+      console.log('✅ Bulk user transfer settings synced to backend')
+    } catch (error) {
+      console.warn('⚠️ Failed to bulk sync user transfer settings to backend:', error)
+    }
+  },
 }

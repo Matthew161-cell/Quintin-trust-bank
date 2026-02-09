@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import { syncService } from '../../services/syncService'
 
 interface StoredTransaction {
   id: string
@@ -45,25 +46,62 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
       return
     }
 
-    // Otherwise, fetch from localStorage
-    const storedTransactions = JSON.parse(localStorage.getItem('transactions') || '[]') as StoredTransaction[]
-    
-    // Filter transactions for current user and convert to Transaction format
-    const userTransactions = storedTransactions
-      .filter((tx) => tx.from === user?.email)
-      .reverse() // Most recent first
-      .map((tx) => ({
-        id: tx.id,
-        title: `Transfer to ${tx.recipientName}`,
-        description: tx.description || `${tx.type === 'local' ? 'Local' : 'International'} transfer to ${tx.to}`,
-        amount: tx.amount,
-        type: 'expense' as const,
-        icon: tx.type === 'local' ? '🏦' : '🌍',
-        timestamp: formatTimeAgo(new Date(tx.timestamp)),
-        category: tx.type === 'local' ? 'Local Transfer' : 'International Transfer',
-      }))
+    const loadTransactions = async () => {
+      let storedTransactions: StoredTransaction[] = []
 
-    setTransactions(userTransactions.length > 0 ? userTransactions : getDefaultTransactions())
+      // Try fetching from backend first (cross-device sync)
+      if (user?.email) {
+        try {
+          const backendTransactions = await syncService.fetchTransactions(user.email)
+          if (backendTransactions && backendTransactions.length > 0) {
+            storedTransactions = backendTransactions as StoredTransaction[]
+            // Update localStorage with backend data
+            const allLocalTx = JSON.parse(localStorage.getItem('transactions') || '[]') as StoredTransaction[]
+            // Merge: keep local transactions not in backend, add all backend ones
+            const backendIds = new Set(backendTransactions.map((t: any) => t.id))
+            const localOnly = allLocalTx.filter((t) => !backendIds.has(t.id))
+            const merged = [...backendTransactions, ...localOnly] as StoredTransaction[]
+            localStorage.setItem('transactions', JSON.stringify(merged))
+            storedTransactions = merged
+          } else {
+            // Fallback to localStorage
+            storedTransactions = JSON.parse(localStorage.getItem('transactions') || '[]')
+            // Push local transactions to backend for sync
+            const userTx = storedTransactions.filter((tx) => tx.from === user.email)
+            for (const tx of userTx) {
+              syncService.saveTransaction(user.email, tx as any).catch(() => {})
+            }
+          }
+        } catch {
+          storedTransactions = JSON.parse(localStorage.getItem('transactions') || '[]')
+        }
+      } else {
+        storedTransactions = JSON.parse(localStorage.getItem('transactions') || '[]')
+      }
+
+      // Filter transactions for current user and convert to Transaction format
+      const userTransactions = storedTransactions
+        .filter((tx) => tx.from === user?.email)
+        .reverse() // Most recent first
+        .map((tx) => ({
+          id: tx.id,
+          title: `Transfer to ${tx.recipientName}`,
+          description: tx.description || `${tx.type === 'local' ? 'Local' : 'International'} transfer to ${tx.to}`,
+          amount: tx.amount,
+          type: 'expense' as const,
+          icon: tx.type === 'local' ? '🏦' : '🌍',
+          timestamp: formatTimeAgo(new Date(tx.timestamp)),
+          category: tx.type === 'local' ? 'Local Transfer' : 'International Transfer',
+        }))
+
+      setTransactions(userTransactions.length > 0 ? userTransactions : getDefaultTransactions())
+    }
+
+    loadTransactions()
+
+    // Poll for new transactions every 10 seconds
+    const interval = setInterval(loadTransactions, 10000)
+    return () => clearInterval(interval)
   }, [user?.email, propTransactions])
 
   const formatTimeAgo = (date: Date): string => {

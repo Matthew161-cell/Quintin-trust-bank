@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { syncService } from '../services/syncService'
 
 export interface RegisteredUser {
   id: string
@@ -18,6 +19,7 @@ interface UsersRegistryContextType {
   registerUser: (user: RegisteredUser) => void
   updateUser: (id: string, data: Partial<RegisteredUser>) => void
   getAllUsers: () => RegisteredUser[]
+  isSyncing: boolean
 }
 
 const UsersRegistryContext = createContext<UsersRegistryContextType | undefined>(undefined)
@@ -35,31 +37,75 @@ export const UsersRegistryProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     return getDefaultUsers()
   })
+  const [isSyncing, setIsSyncing] = useState(false)
+
+  // Sync from backend on mount
+  useEffect(() => {
+    const syncFromBackend = async () => {
+      setIsSyncing(true)
+      try {
+        const backendUsers = await syncService.fetchUsers()
+        if (backendUsers && backendUsers.length > 0) {
+          setUsers(backendUsers as RegisteredUser[])
+          localStorage.setItem('users_registry', JSON.stringify(backendUsers))
+          console.log('✅ Users registry synced from backend:', backendUsers.length)
+        } else {
+          // If backend has no users, push local users to backend
+          const localUsers = JSON.parse(localStorage.getItem('users_registry') || '[]')
+          if (localUsers.length > 0) {
+            syncService.saveUsers(localUsers).catch((error) =>
+              console.error('Failed to push local users to backend:', error)
+            )
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to sync users from backend:', error)
+      } finally {
+        setIsSyncing(false)
+      }
+    }
+
+    syncFromBackend()
+
+    // Poll for updates every 15 seconds
+    const interval = setInterval(syncFromBackend, 15000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Persist to localStorage
   useEffect(() => {
     localStorage.setItem('users_registry', JSON.stringify(users))
   }, [users])
 
-  const registerUser = (user: RegisteredUser) => {
+  const registerUser = useCallback((user: RegisteredUser) => {
     setUsers((prev) => {
       // Check if user already exists
       const exists = prev.some((u) => u.email === user.email)
       if (exists) return prev
-      return [...prev, user]
+      const updated = [...prev, user]
+      // Sync to backend
+      syncService.saveUsers(updated).catch((error) =>
+        console.error('Failed to sync new user to backend:', error)
+      )
+      return updated
     })
-  }
+  }, [])
 
-  const updateUser = (id: string, data: Partial<RegisteredUser>) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, ...data } : u))
-    )
-  }
+  const updateUser = useCallback((id: string, data: Partial<RegisteredUser>) => {
+    setUsers((prev) => {
+      const updated = prev.map((u) => (u.id === id ? { ...u, ...data } : u))
+      // Sync to backend
+      syncService.saveUsers(updated).catch((error) =>
+        console.error('Failed to sync user update to backend:', error)
+      )
+      return updated
+    })
+  }, [])
 
-  const getAllUsers = () => users
+  const getAllUsers = useCallback(() => users, [users])
 
   return (
-    <UsersRegistryContext.Provider value={{ users, registerUser, updateUser, getAllUsers }}>
+    <UsersRegistryContext.Provider value={{ users, registerUser, updateUser, getAllUsers, isSyncing }}>
       {children}
     </UsersRegistryContext.Provider>
   )

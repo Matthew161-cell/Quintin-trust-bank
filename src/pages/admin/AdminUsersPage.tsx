@@ -201,12 +201,26 @@ export const AdminUsersPage: React.FC = () => {
 
       // Sync updated users list to backend for cross-device access
       syncService.saveUsers(updatedUsers).catch((error) => console.error('Failed to sync users after update:', error))
+
+      // Also sync customer data to backend so user's dashboard shows updated balance on any device
+      const customerEmail = editModal.newEmail || editModal.customer.email
+      syncService.saveCustomerData(customerEmail, {
+        balance: newAmount,
+        fullName: editModal.newFullName || editModal.customer.fullName,
+        email: customerEmail,
+      }).catch((error) => console.error('Failed to sync customer data to backend:', error))
+
+      // Also explicitly sync the balance
+      syncService.updateBalance(customerEmail, newAmount).catch((error) =>
+        console.error('Failed to sync balance to backend:', error)
+      )
       
       setEditModal({ isOpen: false, customer: null, newFullName: '', newBalance: '', newEmail: '', newPassword: '' })
     }
   }
 
   const handleDeleteCustomer = (id: string) => {
+    const deletedCustomer = customers.find((c) => c.id === id)
     const updatedCustomers = customers.filter((c) => c.id !== id)
     setCustomers(updatedCustomers)
     
@@ -217,6 +231,15 @@ export const AdminUsersPage: React.FC = () => {
 
     // Sync deleted users list to backend for cross-device access
     syncService.saveUsers(updatedUsers).catch((error) => console.error('Failed to sync users after delete:', error))
+
+    // Also clear customer data on backend for this user
+    if (deletedCustomer?.email) {
+      syncService.saveCustomerData(deletedCustomer.email, {
+        balance: 0,
+        fullName: deletedCustomer.fullName,
+        email: deletedCustomer.email,
+      }).catch((error) => console.error('Failed to clear customer data on backend:', error))
+    }
   }
 
   const handleAddUser = () => {
@@ -268,6 +291,19 @@ export const AdminUsersPage: React.FC = () => {
 
       // Sync updated users list to backend for cross-device access
       syncService.saveUsers(updatedCustomers).catch((error) => console.error('Failed to sync users:', error))
+
+      // Sync customer data to backend so user's dashboard shows balance on any device
+      if (newUserForm.balance && parseFloat(newUserForm.balance) > 0) {
+        syncService.saveCustomerData(newUserForm.email, {
+          balance: parseFloat(newUserForm.balance),
+          fullName: newUserForm.fullName,
+          email: newUserForm.email,
+        }).catch((error) => console.error('Failed to sync customer data:', error))
+
+        syncService.updateBalance(newUserForm.email, parseFloat(newUserForm.balance)).catch((error) =>
+          console.error('Failed to sync balance:', error)
+        )
+      }
 
       // Show success and reset form
       alert(`User ${newUserForm.fullName} created successfully! They can now login with ${newUserForm.email}`)

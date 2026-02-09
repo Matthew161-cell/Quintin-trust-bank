@@ -394,6 +394,19 @@ export const authService = {
     })
     localStorage.setItem('users_registry', JSON.stringify(allUsers))
 
+    // Sync new user to backend for cross-device access
+    try {
+      const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001'
+      await fetch(`${API_URL}/api/sync/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ users: allUsers }),
+      })
+      console.log('✅ New user synced to backend')
+    } catch (error) {
+      console.warn('⚠️ Failed to sync new user to backend:', error)
+    }
+
     return {
       user: newUser,
       requiresEmailVerification: true,
@@ -404,11 +417,26 @@ export const authService = {
   async login(data: LoginData): Promise<AuthSession> {
     // Trim and lowercase email for matching
     const email = data.email.trim().toLowerCase()
+
+    // Try to sync users from backend first to get latest data (e.g., admin changed password on other device)
+    try {
+      const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001'
+      const response = await fetch(`${API_URL}/api/sync/users`)
+      if (response.ok) {
+        const data_resp = await response.json()
+        if (data_resp.users && data_resp.users.length > 0) {
+          localStorage.setItem('users_registry', JSON.stringify(data_resp.users))
+          console.log('✅ Users synced from backend before login')
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not sync users from backend before login:', error)
+    }
+
     const users = getRegisteredUsers()
     
     console.log('Login attempt with email:', email)
     console.log('Available users:', Object.keys(users))
-    console.log('Full users object:', users)
     
     const userRecord = users[email]
 
@@ -418,9 +446,6 @@ export const authService = {
     }
 
     console.log(`✓ User found: ${email}`)
-    console.log(`  Stored password: "${userRecord.password}"`)
-    console.log(`  Entered password: "${data.password.trim()}"`)
-    console.log(`  Password match: ${verifyPassword(data.password.trim(), userRecord.password)}`)
 
     if (!verifyPassword(data.password.trim(), userRecord.password)) {
       throw new Error('Invalid email or password')
@@ -508,6 +533,18 @@ export const authService = {
     if (userIndex !== -1) {
       allUsers[userIndex].password = newPassword.trim()
       localStorage.setItem('users_registry', JSON.stringify(allUsers))
+
+      // Sync password reset to backend
+      try {
+        const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001'
+        await fetch(`${API_URL}/api/sync/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ users: allUsers }),
+        })
+      } catch (error) {
+        console.warn('⚠️ Failed to sync password reset to backend:', error)
+      }
     }
   },
 
@@ -558,7 +595,7 @@ export const authService = {
   },
 
   // Register new user credentials (called by admin when creating users)
-  registerUserCredentials(email: string, password: string, fullName: string, phone: string = ''): User {
+  async registerUserCredentials(email: string, password: string, fullName: string, phone: string = ''): Promise<User> {
     const normalizedEmail = email.trim().toLowerCase()
     const users = getRegisteredUsers()
     
@@ -596,6 +633,19 @@ export const authService = {
     })
     localStorage.setItem('users_registry', JSON.stringify(allUsers))
 
+    // Sync to backend for cross-device access
+    try {
+      const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001'
+      await fetch(`${API_URL}/api/sync/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ users: allUsers }),
+      })
+      console.log('✅ User credentials synced to backend')
+    } catch (error) {
+      console.warn('⚠️ Failed to sync user credentials to backend:', error)
+    }
+
     return newUser
   },
 
@@ -614,6 +664,18 @@ export const authService = {
     if (userIndex !== -1) {
       allUsers[userIndex].password = newPassword.trim()
       localStorage.setItem('users_registry', JSON.stringify(allUsers))
+
+      // Sync updated users to backend
+      try {
+        const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001'
+        fetch(`${API_URL}/api/sync/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ users: allUsers }),
+        }).catch(() => {})
+      } catch (error) {
+        console.warn('⚠️ Failed to sync password update to backend:', error)
+      }
     }
   },
 
@@ -650,6 +712,19 @@ export const authService = {
     if (userIndex !== -1) {
       allUsers[userIndex].email = newEmail
       localStorage.setItem('users_registry', JSON.stringify(allUsers))
+
+      // Sync updated users to backend
+      try {
+        const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3001'
+        await fetch(`${API_URL}/api/sync/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ users: allUsers }),
+        })
+        console.log('✅ Email change synced to backend')
+      } catch (error) {
+        console.warn('⚠️ Failed to sync email change to backend:', error)
+      }
     }
   },}
 
