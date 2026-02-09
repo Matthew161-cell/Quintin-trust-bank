@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { ArrowRight, TrendingUp, Send, CreditCard, Shield, Zap } from 'lucide-react'
+import { ArrowRight, Shield, Zap } from 'lucide-react'
 
 export const Hero = () => {
   const containerVariants = {
