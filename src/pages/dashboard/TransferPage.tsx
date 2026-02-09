@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTransferSettings } from '../../contexts/TransferSettingsContext'
 import { useUserTransferSettings } from '../../contexts/UserTransferSettingsContext'
+import { useCustomerData } from '../../contexts/CustomerDataContext'
 import { Sidebar } from '../../components/dashboard/Sidebar'
 import { TopBar } from '../../components/dashboard/TopBar'
 import { OTPVerification } from '../../components/auth/OTPVerification'
@@ -28,6 +29,7 @@ export const TransferPage: React.FC = () => {
   const { user, logout } = useAuth()
   const { settings } = useTransferSettings()
   const { getUserTransferSettings } = useUserTransferSettings()
+  const { updateCustomer } = useCustomerData()
   const navigate = useNavigate()
   const balance = (user as any)?.balance || 0
 
@@ -194,6 +196,16 @@ export const TransferPage: React.FC = () => {
       const transactions = JSON.parse(localStorage.getItem('transactions') || '[]')
       transactions.push(transferRecord)
       localStorage.setItem('transactions', JSON.stringify(transactions))
+
+      // Update user balance
+      const transferAmount = parseFloat(pendingTransfer.amount)
+      const fee = transferType === 'international' ? transferAmount * 0.01 : 0
+      const newBalance = balance - transferAmount - fee
+
+      // Update customer data context
+      if (user?.id) {
+        updateCustomer(user.id, { balance: newBalance })
+      }
 
       // Clear OTP after successful transfer
       const gmailAddress = (user as any)?.gmailAddress || user?.email

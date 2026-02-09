@@ -1,6 +1,21 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Download, Filter, Calendar } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
+
+interface StoredTransaction {
+  id: string
+  type: 'local' | 'international'
+  from: string
+  to: string
+  recipientName: string
+  amount: number
+  currency: string
+  description: string
+  status: string
+  timestamp: string
+  fee?: number
+}
 
 interface Transaction {
   id: string
@@ -13,64 +28,6 @@ interface Transaction {
   timestamp: string
   fee: number
 }
-
-const transactions: Transaction[] = [
-  {
-    id: '1',
-    type: 'receive',
-    from: 'Exchange API',
-    to: 'Your Wallet',
-    amount: 0.5,
-    currency: 'BTC',
-    status: 'completed',
-    timestamp: '2026-02-05 14:32',
-    fee: 0.0001,
-  },
-  {
-    id: '2',
-    type: 'send',
-    from: 'Your Wallet',
-    to: '1A1z7ago...',
-    amount: 5000,
-    currency: 'USDC',
-    status: 'completed',
-    timestamp: '2026-02-05 12:15',
-    fee: 0.5,
-  },
-  {
-    id: '3',
-    type: 'buy',
-    from: 'Bank Transfer',
-    to: 'Your Wallet',
-    amount: 2.5,
-    currency: 'ETH',
-    status: 'pending',
-    timestamp: '2026-02-05 10:42',
-    fee: 15.0,
-  },
-  {
-    id: '4',
-    type: 'sell',
-    from: 'Your Wallet',
-    to: 'Exchange',
-    amount: 100,
-    currency: 'SOL',
-    status: 'completed',
-    timestamp: '2026-02-04 16:28',
-    fee: 5.0,
-  },
-  {
-    id: '5',
-    type: 'receive',
-    from: 'Friend Wallet',
-    to: 'Your Wallet',
-    amount: 1.25,
-    currency: 'BTC',
-    status: 'completed',
-    timestamp: '2026-02-04 09:15',
-    fee: 0,
-  },
-]
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -100,8 +57,83 @@ const getTypeIcon = (type: string) => {
   }
 }
 
+const convertStoredToTransaction = (stored: StoredTransaction): Transaction => {
+  return {
+    id: stored.id,
+    type: 'send', // User transfers are always 'send'
+    from: stored.from,
+    to: stored.recipientName,
+    amount: stored.amount,
+    currency: stored.currency,
+    status: stored.status as 'completed' | 'pending' | 'failed',
+    timestamp: new Date(stored.timestamp).toLocaleString('en-US', { 
+      year: '2-digit', 
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    fee: stored.fee || 0,
+  }
+}
+
+const defaultTransactions: Transaction[] = [
+  {
+    id: '1',
+    type: 'receive',
+    from: 'Exchange API',
+    to: 'Your Wallet',
+    amount: 0.5,
+    currency: 'BTC',
+    status: 'completed',
+    timestamp: '02/05/26 14:32',
+    fee: 0.0001,
+  },
+  {
+    id: '2',
+    type: 'send',
+    from: 'Your Wallet',
+    to: '1A1z7ago...',
+    amount: 5000,
+    currency: 'USDC',
+    status: 'completed',
+    timestamp: '02/05/26 12:15',
+    fee: 0.5,
+  },
+  {
+    id: '3',
+    type: 'buy',
+    from: 'Bank Transfer',
+    to: 'Your Wallet',
+    amount: 2.5,
+    currency: 'ETH',
+    status: 'pending',
+    timestamp: '02/05/26 10:42',
+    fee: 15.0,
+  },
+]
+
 export const TransactionsPage: React.FC = () => {
+  const { user } = useAuth()
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [transactions, setTransactions] = useState<Transaction[]>(defaultTransactions)
+
+  useEffect(() => {
+    // Fetch real transactions from localStorage
+    const storedTransactions = JSON.parse(localStorage.getItem('transactions') || '[]') as StoredTransaction[]
+    
+    // Filter for current user and convert to Transaction format
+    const userTransactions = storedTransactions
+      .filter((tx) => tx.from === user?.email)
+      .reverse() // Most recent first
+      .map(convertStoredToTransaction)
+
+    // Combine with default transactions if user has transfers, otherwise show defaults
+    setTransactions(userTransactions.length > 0 
+      ? [...userTransactions, ...defaultTransactions]
+      : defaultTransactions
+    )
+  }, [user?.email])
 
   const filteredTransactions = filterStatus === 'all' 
     ? transactions 
