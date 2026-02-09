@@ -27,6 +27,15 @@ interface SyncCustomerData {
   [key: string]: any
 }
 
+interface SyncAdminData {
+  role: string
+  permissions: string[]
+  fullName: string
+  email: string
+  settings?: Record<string, any>
+  [key: string]: any
+}
+
 export const syncService = {
   /**
    * Save a transaction to the backend
@@ -149,6 +158,82 @@ export const syncService = {
       console.log('✅ Balance synced to backend')
     } catch (error) {
       console.warn('⚠️ Failed to sync balance to backend:', error)
+      // Don't throw - allow offline operation
+    }
+  },
+
+  /**
+   * Save admin data to the backend
+   */
+  async saveAdminData(email: string, data: Partial<SyncAdminData>): Promise<void> {
+    try {
+      const response = await fetch(`${API_URL}/api/sync/admin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.toLowerCase().trim(),
+          data,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to save admin data: ${response.statusText}`)
+      }
+
+      console.log('✅ Admin data synced to backend')
+    } catch (error) {
+      console.warn('⚠️ Failed to sync admin data to backend:', error)
+      // Don't throw - allow offline operation
+    }
+  },
+
+  /**
+   * Fetch admin data from the backend
+   */
+  async fetchAdminData(email: string): Promise<SyncAdminData | null> {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/sync/admin/${encodeURIComponent(email.toLowerCase().trim())}`
+      )
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch admin data: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      console.log('✅ Admin data fetched from backend')
+      return data.data || null
+    } catch (error) {
+      console.warn('⚠️ Failed to fetch admin data from backend:', error)
+      return null
+    }
+  },
+
+  /**
+   * Save admin settings/preferences to the backend
+   */
+  async saveAdminSettings(email: string, settings: Record<string, any>): Promise<void> {
+    try {
+      const response = await fetch(`${API_URL}/api/sync/admin-settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.toLowerCase().trim(),
+          settings,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to save admin settings: ${response.statusText}`)
+      }
+
+      console.log('✅ Admin settings synced to backend')
+    } catch (error) {
+      console.warn('⚠️ Failed to sync admin settings to backend:', error)
       // Don't throw - allow offline operation
     }
   },

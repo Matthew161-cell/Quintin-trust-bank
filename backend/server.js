@@ -23,6 +23,7 @@ const MAX_ATTEMPTS = 5
 // In-memory store for user data (cross-device sync)
 const transactionsStore = {} // email -> [transactions]
 const customerDataStore = {} // email -> { balance, fullName, phone, etc }
+const adminDataStore = {} // email -> { role, permissions, adminSettings, etc }
 
 // Load initial data on startup (could be from a file in production)
 const loadPersistentData = () => {
@@ -455,6 +456,91 @@ app.post('/api/sync/balance', (req, res) => {
       success: true,
       message: 'Balance updated',
       balance,
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * POST /api/sync/admin - Save/update admin data
+ */
+app.post('/api/sync/admin', (req, res) => {
+  try {
+    const { email, data } = req.body
+
+    if (!email || !data) {
+      return res.status(400).json({ success: false, message: 'Email and data required' })
+    }
+
+    const normalizedEmail = email.toLowerCase().trim()
+
+    // Merge with existing admin data
+    adminDataStore[normalizedEmail] = {
+      ...adminDataStore[normalizedEmail],
+      ...data,
+      email: normalizedEmail,
+      lastUpdated: new Date().toISOString(),
+    }
+
+    console.log(`✅ Admin data synced for ${normalizedEmail}`)
+
+    res.json({
+      success: true,
+      message: 'Admin data saved',
+      data: adminDataStore[normalizedEmail],
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * GET /api/sync/admin/:email - Get admin data
+ */
+app.get('/api/sync/admin/:email', (req, res) => {
+  try {
+    const normalizedEmail = req.params.email.toLowerCase().trim()
+    const data = adminDataStore[normalizedEmail] || null
+
+    res.json({
+      success: true,
+      data,
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * POST /api/sync/admin-settings - Save admin settings/preferences
+ */
+app.post('/api/sync/admin-settings', (req, res) => {
+  try {
+    const { email, settings } = req.body
+
+    if (!email || !settings) {
+      return res.status(400).json({ success: false, message: 'Email and settings required' })
+    }
+
+    const normalizedEmail = email.toLowerCase().trim()
+
+    if (!adminDataStore[normalizedEmail]) {
+      adminDataStore[normalizedEmail] = {}
+    }
+
+    adminDataStore[normalizedEmail].settings = settings
+    adminDataStore[normalizedEmail].settingsUpdatedAt = new Date().toISOString()
+
+    console.log(`✅ Admin settings updated for ${normalizedEmail}`)
+
+    res.json({
+      success: true,
+      message: 'Admin settings saved',
+      settings,
     })
   } catch (error) {
     console.error('Error:', error)
