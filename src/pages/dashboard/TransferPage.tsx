@@ -10,6 +10,7 @@ import { Sidebar } from '../../components/dashboard/Sidebar'
 import { TopBar } from '../../components/dashboard/TopBar'
 import { OTPVerification } from '../../components/auth/OTPVerification'
 import { otpService } from '../../services/otpService'
+import { syncService } from '../../services/syncService'
 
 type TransferType = 'local' | 'international'
 type TransferStatus = 'idle' | 'processing' | 'success' | 'error'
@@ -195,8 +196,8 @@ export const TransferPage: React.FC = () => {
       const transferRecord = {
         id: `transfer_${Date.now()}`,
         type: transferType,
-        from: user?.email,
-        to: transferType === 'local' ? pendingTransfer.accountNumber : pendingTransfer.iban,
+        from: user?.email || '',
+        to: (transferType === 'local' ? pendingTransfer.accountNumber : pendingTransfer.iban) || '',
         recipientName: pendingTransfer.recipientName,
         amount: parseFloat(pendingTransfer.amount),
         currency: pendingTransfer.currency,
@@ -213,6 +214,11 @@ export const TransferPage: React.FC = () => {
       transactions.push(transferRecord)
       localStorage.setItem('transactions', JSON.stringify(transactions))
 
+      // Sync transaction to backend for cross-device access
+      if (user?.email) {
+        syncService.saveTransaction(user.email, transferRecord as any)
+      }
+
       // Update user balance
       const transferAmount = parseFloat(pendingTransfer.amount)
       const fee = transferType === 'international' ? transferAmount * 0.01 : 0
@@ -224,6 +230,11 @@ export const TransferPage: React.FC = () => {
       // Update customer data context
       if (user?.id) {
         updateCustomer(user.id, { balance: newBalance })
+      }
+
+      // Sync balance to backend for cross-device access
+      if (user?.email) {
+        syncService.updateBalance(user.email, newBalance)
       }
 
       // Clear OTP after successful transfer

@@ -20,6 +20,40 @@ const otpStore = {}
 const OTP_EXPIRY = 10 * 60 * 1000 // 10 minutes
 const MAX_ATTEMPTS = 5
 
+// In-memory store for user data (cross-device sync)
+const transactionsStore = {} // email -> [transactions]
+const customerDataStore = {} // email -> { balance, fullName, phone, etc }
+
+// Load initial data on startup (could be from a file in production)
+const loadPersistentData = () => {
+  // This can be enhanced to load from a file or database
+  try {
+    const stored = localStorage?.getItem?.('sync_data')
+    if (stored) {
+      const data = JSON.parse(stored)
+      Object.assign(transactionsStore, data.transactions || {})
+      Object.assign(customerDataStore, data.customerData || {})
+      console.log('✅ Loaded persistent data from storage')
+    }
+  } catch (e) {
+    console.log('ℹ️  No persistent data found on startup')
+  }
+}
+
+// Save data to file (optional - for production)
+const savePersistentData = () => {
+  try {
+    const fs = await import('fs')
+    const data = { transactions: transactionsStore, customerData: customerDataStore }
+    // Uncomment to enable file-based persistence
+    // fs.writeFileSync('./data.json', JSON.stringify(data, null, 2))
+  } catch (e) {
+    // File operations not available
+  }
+}
+
+loadPersistentData()
+
 /**
  * Generate random 6-digit OTP
  */
@@ -277,6 +311,150 @@ app.post('/api/check-otp-status', (req, res) => {
     res.json({
       verified: record.verified,
       remainingTime: Math.ceil((record.expiresAt - Date.now()) / 1000),
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * POST /api/sync/transactions - Save a transaction
+ */
+app.post('/api/sync/transactions', (req, res) => {
+  try {
+    const { email, transaction } = req.body
+
+    if (!email || !transaction) {
+      return res.status(400).json({ success: false, message: 'Email and transaction required' })
+    }
+
+    const normalizedEmail = email.toLowerCase().trim()
+    
+    if (!transactionsStore[normalizedEmail]) {
+      transactionsStore[normalizedEmail] = []
+    }
+
+    // Add or update transaction
+    const existingIndex = transactionsStore[normalizedEmail].findIndex(
+      (t) => t.id === transaction.id
+    )
+
+    if (existingIndex >= 0) {
+      transactionsStore[normalizedEmail][existingIndex] = transaction
+    } else {
+      transactionsStore[normalizedEmail].push(transaction)
+    }
+
+    console.log(`✅ Transaction saved for ${normalizedEmail}`)
+
+    res.json({
+      success: true,
+      message: 'Transaction saved',
+      transaction,
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * GET /api/sync/transactions/:email - Get all transactions for a user
+ */
+app.get('/api/sync/transactions/:email', (req, res) => {
+  try {
+    const normalizedEmail = req.params.email.toLowerCase().trim()
+    const transactions = transactionsStore[normalizedEmail] || []
+
+    res.json({
+      success: true,
+      transactions,
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * POST /api/sync/customer - Save/update customer data
+ */
+app.post('/api/sync/customer', (req, res) => {
+  try {
+    const { email, data } = req.body
+
+    if (!email || !data) {
+      return res.status(400).json({ success: false, message: 'Email and data required' })
+    }
+
+    const normalizedEmail = email.toLowerCase().trim()
+
+    // Merge with existing data
+    customerDataStore[normalizedEmail] = {
+      ...customerDataStore[normalizedEmail],
+      ...data,
+      email: normalizedEmail,
+      lastUpdated: new Date().toISOString(),
+    }
+
+    console.log(`✅ Customer data updated for ${normalizedEmail}`)
+
+    res.json({
+      success: true,
+      message: 'Customer data saved',
+      data: customerDataStore[normalizedEmail],
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * GET /api/sync/customer/:email - Get customer data
+ */
+app.get('/api/sync/customer/:email', (req, res) => {
+  try {
+    const normalizedEmail = req.params.email.toLowerCase().trim()
+    const data = customerDataStore[normalizedEmail] || null
+
+    res.json({
+      success: true,
+      data,
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * POST /api/sync/balance - Update user balance
+ */
+app.post('/api/sync/balance', (req, res) => {
+  try {
+    const { email, balance } = req.body
+
+    if (!email || balance === undefined) {
+      return res.status(400).json({ success: false, message: 'Email and balance required' })
+    }
+
+    const normalizedEmail = email.toLowerCase().trim()
+
+    if (!customerDataStore[normalizedEmail]) {
+      customerDataStore[normalizedEmail] = {}
+    }
+
+    customerDataStore[normalizedEmail].balance = balance
+    customerDataStore[normalizedEmail].lastUpdated = new Date().toISOString()
+
+    console.log(`✅ Balance updated for ${normalizedEmail}: ${balance}`)
+
+    res.json({
+      success: true,
+      message: 'Balance updated',
+      balance,
     })
   } catch (error) {
     console.error('Error:', error)

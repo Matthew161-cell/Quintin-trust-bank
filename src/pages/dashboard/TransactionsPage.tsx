@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Download, Filter } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import { syncService } from '../../services/syncService'
 
 interface StoredTransaction {
   id: string
@@ -139,20 +140,49 @@ export const TransactionsPage: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>(defaultTransactions)
 
   useEffect(() => {
-    // Fetch real transactions from localStorage
-    const storedTransactions = JSON.parse(localStorage.getItem('transactions') || '[]') as StoredTransaction[]
-    
-    // Filter for current user and convert to Transaction format
-    const userTransactions = storedTransactions
-      .filter((tx) => tx.from === user?.email)
-      .reverse() // Most recent first
-      .map(convertStoredToTransaction)
+    const loadTransactions = async () => {
+      if (!user?.email) return
 
-    // Combine with default transactions if user has transfers, otherwise show defaults
-    setTransactions(userTransactions.length > 0 
-      ? [...userTransactions, ...defaultTransactions]
-      : defaultTransactions
-    )
+      try {
+        // Fetch from backend first (cross-device sync)
+        const backendTransactions = await syncService.fetchTransactions(user.email)
+        
+        // Also get from localStorage as fallback
+        const localTransactions = JSON.parse(localStorage.getItem('transactions') || '[]') as StoredTransaction[]
+        
+        // Merge both sources (backend takes priority for duplicates)
+        const backendIds = new Set(backendTransactions.map((t) => t.id))
+        const uniqueLocal = localTransactions.filter((t) => !backendIds.has(t.id))
+        const mergedTransactions = [...backendTransactions, ...uniqueLocal]
+
+        // Filter for current user and convert to Transaction format
+        const userTransactions = mergedTransactions
+          .filter((tx) => tx.from === user.email)
+          .reverse() // Most recent first
+          .map(convertStoredToTransaction)
+
+        // Combine with default transactions if user has transfers, otherwise show defaults
+        setTransactions(userTransactions.length > 0 
+          ? [...userTransactions, ...defaultTransactions]
+          : defaultTransactions
+        )
+      } catch (error) {
+        console.error('Error loading transactions:', error)
+        // Fallback to localStorage
+        const localTransactions = JSON.parse(localStorage.getItem('transactions') || '[]') as StoredTransaction[]
+        const userTransactions = localTransactions
+          .filter((tx) => tx.from === user.email)
+          .reverse()
+          .map(convertStoredToTransaction)
+
+        setTransactions(userTransactions.length > 0 
+          ? [...userTransactions, ...defaultTransactions]
+          : defaultTransactions
+        )
+      }
+    }
+
+    loadTransactions()
   }, [user?.email])
 
   const filteredTransactions = filterStatus === 'all' 
