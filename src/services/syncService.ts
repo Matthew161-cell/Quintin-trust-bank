@@ -237,4 +237,50 @@ export const syncService = {
       // Don't throw - allow offline operation
     }
   },
+
+  /**
+   * Fetch all users from backend
+   */
+  async fetchUsers(): Promise<any[]> {
+    try {
+      const response = await fetch(`${API_URL}/api/sync/users`)
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch users: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      console.log('✅ Users fetched from backend:', data.users?.length || 0)
+      return data.users || []
+    } catch (error) {
+      console.warn('⚠️ Failed to fetch users from backend:', error)
+      return []
+    }
+  },
+
+  /**
+   * Save users registry to backend
+   */
+  async saveUsers(users: any[]): Promise<void> {
+    try {
+      const response = await fetch(`${API_URL}/api/sync/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          users,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to save users: ${response.statusText}`)
+      }
+
+      console.log('✅ Users registry synced to backend:', users.length)
+    } catch (error) {
+      console.warn('⚠️ Failed to sync users to backend:', error)
+      // Don't throw - allow offline operation
+    }
+  },
 }

@@ -7,6 +7,7 @@ import { useUsersRegistry } from '../../contexts/UsersRegistryContext'
 import { useUserTransferSettings } from '../../contexts/UserTransferSettingsContext'
 import { Edit2, Trash2, X, Save, ArrowLeft, Eye, EyeOff, ToggleRight, ToggleLeft } from 'lucide-react'
 import { authService } from '../../services/authService'
+import { syncService } from '../../services/syncService'
 
 interface Customer {
   id: string
@@ -38,18 +39,47 @@ export const AdminUsersPage: React.FC = () => {
 
   // Load users from registry on mount - always get fresh from localStorage
   useEffect(() => {
-    const stored = localStorage.getItem('users_registry')
-    if (stored) {
+    const loadUsers = async () => {
       try {
-        setCustomers(JSON.parse(stored))
-      } catch {
-        const registeredUsers = getAllUsers()
-        setCustomers(registeredUsers as any)
+        // Fetch from backend first (cross-device sync)
+        const backendUsers = await syncService.fetchUsers()
+
+        if (backendUsers && backendUsers.length > 0) {
+          // Use backend users as source of truth
+          setCustomers(backendUsers)
+          // Update localStorage with backend data
+          localStorage.setItem('users_registry', JSON.stringify(backendUsers))
+        } else {
+          // Fallback to localStorage
+          const stored = localStorage.getItem('users_registry')
+          if (stored) {
+            try {
+              setCustomers(JSON.parse(stored))
+            } catch {
+              const registeredUsers = getAllUsers()
+              setCustomers(registeredUsers as any)
+            }
+          } else {
+            const registeredUsers = getAllUsers()
+            setCustomers(registeredUsers as any)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading users:', error)
+        // Fallback to localStorage
+        const stored = localStorage.getItem('users_registry')
+        if (stored) {
+          try {
+            setCustomers(JSON.parse(stored))
+          } catch {
+            const registeredUsers = getAllUsers()
+            setCustomers(registeredUsers as any)
+          }
+        }
       }
-    } else {
-      const registeredUsers = getAllUsers()
-      setCustomers(registeredUsers as any)
     }
+
+    loadUsers()
   }, [])
 
   const [editModal, setEditModal] = useState<EditModalState>({
@@ -168,18 +198,25 @@ export const AdminUsersPage: React.FC = () => {
         transfersEnabled: transferSettings.transfersEnabled,
         successRate: transferSettings.successRate,
       })
+
+      // Sync updated users list to backend for cross-device access
+      syncService.saveUsers(updatedUsers).catch((error) => console.error('Failed to sync users after update:', error))
       
       setEditModal({ isOpen: false, customer: null, newFullName: '', newBalance: '', newEmail: '', newPassword: '' })
     }
   }
 
   const handleDeleteCustomer = (id: string) => {
-    setCustomers(customers.filter((c) => c.id !== id))
+    const updatedCustomers = customers.filter((c) => c.id !== id)
+    setCustomers(updatedCustomers)
     
     // Also remove from UsersRegistry to persist deletion
     const allUsers = JSON.parse(localStorage.getItem('users_registry') || '[]')
     const updatedUsers = allUsers.filter((u: any) => u.id !== id)
     localStorage.setItem('users_registry', JSON.stringify(updatedUsers))
+
+    // Sync deleted users list to backend for cross-device access
+    syncService.saveUsers(updatedUsers).catch((error) => console.error('Failed to sync users after delete:', error))
   }
 
   const handleAddUser = () => {
@@ -209,7 +246,8 @@ export const AdminUsersPage: React.FC = () => {
       }
 
       // Add to local state
-      setCustomers([...customers, newUser])
+      const updatedCustomers = [...customers, newUser]
+      setCustomers(updatedCustomers)
 
       // Register in UsersRegistry
       registerUser({
@@ -227,6 +265,9 @@ export const AdminUsersPage: React.FC = () => {
           balance: parseFloat(newUserForm.balance),
         })
       }
+
+      // Sync updated users list to backend for cross-device access
+      syncService.saveUsers(updatedCustomers).catch((error) => console.error('Failed to sync users:', error))
 
       // Show success and reset form
       alert(`User ${newUserForm.fullName} created successfully! They can now login with ${newUserForm.email}`)

@@ -24,6 +24,7 @@ const MAX_ATTEMPTS = 5
 const transactionsStore = {} // email -> [transactions]
 const customerDataStore = {} // email -> { balance, fullName, phone, etc }
 const adminDataStore = {} // email -> { role, permissions, adminSettings, etc }
+let usersRegistry = [] // All registered users - synced across devices
 
 // Load initial data on startup (could be from a file in production)
 const loadPersistentData = () => {
@@ -541,6 +542,48 @@ app.post('/api/sync/admin-settings', (req, res) => {
       success: true,
       message: 'Admin settings saved',
       settings,
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * GET /api/sync/users - Get all registered users
+ */
+app.get('/api/sync/users', (req, res) => {
+  try {
+    res.json({
+      success: true,
+      users: usersRegistry,
+    })
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+/**
+ * POST /api/sync/users - Save/update all users registry
+ */
+app.post('/api/sync/users', (req, res) => {
+  try {
+    const { users } = req.body
+
+    if (!users || !Array.isArray(users)) {
+      return res.status(400).json({ success: false, message: 'Users array required' })
+    }
+
+    // Replace entire users registry with new data
+    usersRegistry = users
+
+    console.log(`✅ Users registry synced: ${users.length} users`)
+
+    res.json({
+      success: true,
+      message: 'Users registry updated',
+      userCount: users.length,
     })
   } catch (error) {
     console.error('Error:', error)
