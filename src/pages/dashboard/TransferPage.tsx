@@ -15,9 +15,10 @@ type TransferStatus = 'idle' | 'processing' | 'success' | 'error'
 
 interface TransferFormData {
   recipientName: string
-  recipientEmail?: string
   accountNumber?: string
   iban?: string
+  country: string
+  bankAddress: string
   amount: string
   currency: string
   description: string
@@ -45,9 +46,10 @@ export const TransferPage: React.FC = () => {
   const [pendingTransfer, setPendingTransfer] = useState<TransferFormData | null>(null)
   const [formData, setFormData] = useState<TransferFormData>({
     recipientName: '',
-    recipientEmail: '',
     accountNumber: '',
     iban: '',
+    country: '',
+    bankAddress: '',
     amount: '',
     currency: 'USD',
     description: '',
@@ -66,12 +68,16 @@ export const TransferPage: React.FC = () => {
       setErrorMessage('Recipient name is required')
       return false
     }
-    if (!formData.recipientEmail?.trim()) {
-      setErrorMessage('Recipient email is required')
-      return false
-    }
     if (!formData.accountNumber?.trim()) {
       setErrorMessage('Account number is required')
+      return false
+    }
+    if (!formData.country.trim()) {
+      setErrorMessage('Country is required')
+      return false
+    }
+    if (!formData.bankAddress?.trim()) {
+      setErrorMessage('Bank address is required')
       return false
     }
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
@@ -88,6 +94,14 @@ export const TransferPage: React.FC = () => {
     }
     if (!formData.iban?.trim()) {
       setErrorMessage('IBAN is required')
+      return false
+    }
+    if (!formData.country.trim()) {
+      setErrorMessage('Country is required')
+      return false
+    }
+    if (!formData.bankAddress?.trim()) {
+      setErrorMessage('Bank address is required')
       return false
     }
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
@@ -339,18 +353,6 @@ export const TransferPage: React.FC = () => {
                       {transferType === 'local' && (
                         <>
                           <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">Recipient Email</label>
-                            <input
-                              type="email"
-                              name="recipientEmail"
-                              value={formData.recipientEmail}
-                              onChange={handleInputChange}
-                              placeholder="recipient@example.com"
-                              className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
-                            />
-                          </div>
-
-                          <div>
                             <label className="block text-sm font-medium text-slate-300 mb-2">Account Number</label>
                             <input
                               type="text"
@@ -361,23 +363,73 @@ export const TransferPage: React.FC = () => {
                               className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
                             />
                           </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">Country</label>
+                            <input
+                              type="text"
+                              name="country"
+                              value={formData.country}
+                              onChange={handleInputChange}
+                              placeholder="Enter country"
+                              className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">Bank Address</label>
+                            <input
+                              type="text"
+                              name="bankAddress"
+                              value={formData.bankAddress}
+                              onChange={handleInputChange}
+                              placeholder="Enter bank address"
+                              className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                            />
+                          </div>
                         </>
                       )}
 
                       {/* International Transfer Fields */}
                       {transferType === 'international' && (
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">IBAN</label>
-                          <input
-                            type="text"
-                            name="iban"
-                            value={formData.iban}
-                            onChange={handleInputChange}
-                            placeholder="e.g., DE89370400440532013000"
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors font-mono text-sm"
-                          />
-                          <p className="text-xs text-slate-400 mt-1">International Bank Account Number</p>
-                        </div>
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">IBAN</label>
+                            <input
+                              type="text"
+                              name="iban"
+                              value={formData.iban}
+                              onChange={handleInputChange}
+                              placeholder="e.g., DE89370400440532013000"
+                              className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors font-mono text-sm"
+                            />
+                            <p className="text-xs text-slate-400 mt-1">International Bank Account Number</p>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">Country</label>
+                            <input
+                              type="text"
+                              name="country"
+                              value={formData.country}
+                              onChange={handleInputChange}
+                              placeholder="Enter country"
+                              className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">Bank Address</label>
+                            <input
+                              type="text"
+                              name="bankAddress"
+                              value={formData.bankAddress}
+                              onChange={handleInputChange}
+                              placeholder="Enter bank address"
+                              className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                            />
+                          </div>
+                        </>
                       )}
 
                       {/* Amount and Currency */}

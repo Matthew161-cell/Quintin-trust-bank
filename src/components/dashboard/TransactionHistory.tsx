@@ -1,6 +1,21 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
+
+interface StoredTransaction {
+  id: string
+  type: 'local' | 'international'
+  from: string
+  to: string
+  recipientName: string
+  amount: number
+  currency: string
+  description: string
+  status: string
+  timestamp: string
+  fee?: number
+}
 
 interface Transaction {
   id: string
@@ -18,59 +33,84 @@ interface TransactionHistoryProps {
 }
 
 export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
-  transactions = [
-    {
-      id: '1',
-      title: 'Salary Deposit',
-      description: 'Monthly salary from Acme Corp',
-      amount: 5000,
-      type: 'income',
-      icon: '💰',
-      timestamp: '2 hours ago',
-      category: 'Salary',
-    },
-    {
-      id: '2',
-      title: 'AWS Payment',
-      description: 'Cloud services bill',
-      amount: 250,
-      type: 'expense',
-      icon: '☁️',
-      timestamp: '5 hours ago',
-      category: 'Subscription',
-    },
-    {
-      id: '3',
-      title: 'Transfer to Dave',
-      description: 'Personal transfer',
-      amount: 500,
-      type: 'expense',
-      icon: '👤',
-      timestamp: '1 day ago',
-      category: 'Transfer',
-    },
-    {
-      id: '4',
-      title: 'Freelance Project',
-      description: 'Payment from client',
-      amount: 1500,
-      type: 'income',
-      icon: '💻',
-      timestamp: '2 days ago',
-      category: 'Income',
-    },
-    {
-      id: '5',
-      title: 'Starbucks',
-      description: 'Coffee & food',
-      amount: 8.50,
-      type: 'expense',
-      icon: '☕',
-      timestamp: '3 days ago',
-      category: 'Food',
-    },
-  ],
+  transactions: propTransactions,
 }) => {
+  const { user } = useAuth()
+  const [transactions, setTransactions] = useState<Transaction[]>(propTransactions || [])
+
+  useEffect(() => {
+    // If transactions are provided via props, use them
+    if (propTransactions && propTransactions.length > 0) {
+      setTransactions(propTransactions)
+      return
+    }
+
+    // Otherwise, fetch from localStorage
+    const storedTransactions = JSON.parse(localStorage.getItem('transactions') || '[]') as StoredTransaction[]
+    
+    // Filter transactions for current user and convert to Transaction format
+    const userTransactions = storedTransactions
+      .filter((tx) => tx.from === user?.email)
+      .reverse() // Most recent first
+      .map((tx) => ({
+        id: tx.id,
+        title: `Transfer to ${tx.recipientName}`,
+        description: tx.description || `${tx.type === 'local' ? 'Local' : 'International'} transfer to ${tx.to}`,
+        amount: tx.amount,
+        type: 'expense' as const,
+        icon: tx.type === 'local' ? '🏦' : '🌍',
+        timestamp: formatTimeAgo(new Date(tx.timestamp)),
+        category: tx.type === 'local' ? 'Local Transfer' : 'International Transfer',
+      }))
+
+    setTransactions(userTransactions.length > 0 ? userTransactions : getDefaultTransactions())
+  }, [user?.email, propTransactions])
+
+  const formatTimeAgo = (date: Date): string => {
+    const now = new Date()
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+    if (diffInSeconds < 60) return 'Just now'
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`
+    return date.toLocaleDateString()
+  }
+
+  const getDefaultTransactions = (): Transaction[] => {
+    return [
+      {
+        id: '1',
+        title: 'Salary Deposit',
+        description: 'Monthly salary from Acme Corp',
+        amount: 5000,
+        type: 'income',
+        icon: '💰',
+        timestamp: '2 hours ago',
+        category: 'Salary',
+      },
+      {
+        id: '2',
+        title: 'AWS Payment',
+        description: 'Cloud services bill',
+        amount: 250,
+        type: 'expense',
+        icon: '☁️',
+        timestamp: '5 hours ago',
+        category: 'Subscription',
+      },
+      {
+        id: '3',
+        title: 'Transfer to Dave',
+        description: 'Personal transfer',
+        amount: 500,
+        type: 'expense',
+        icon: '👤',
+        timestamp: '1 day ago',
+        category: 'Transfer',
+      },
+    ]
+  }
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
